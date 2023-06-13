@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -7,29 +9,51 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
+var services = builder.Services;
+
 // Add services to the container.
 
-builder.Services.AddControllers();
+services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
 
-builder.Services.AddAutoMapper(typeof(Program));
+services.AddAutoMapper(typeof(Program));
 
-//var lf = app.Services.GetRequiredService<ILoggerFactory>();
+var connStr = configuration.GetConnectionString("DbAppContext");
 
 // Create a data source with the configuration you want:
-var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DbAppContext"));
-await using var dataSource = dataSourceBuilder.Build();
+//var dataSourceBuilder = new NpgsqlDataSourceBuilder(connStr);
+//await using var dataSource = dataSourceBuilder.Build();
 
-builder.Services.AddDbContext<DbAppContext>(
+//services.AddDbContext<DbAppContext>(
+//  options => options
+//  .UseNpgsql(dataSource, o =>
+//  {
+//    o.UseNetTopologySuite();
+//  })
+//  .UseSnakeCaseNamingConvention()
+//);
+
+services.AddDbContext<DbAppContext>(
   options => options
-  .UseNpgsql(dataSource, o =>
+  .UseNpgsql(connStr, o =>
   {
     o.UseNetTopologySuite();
   })
   .UseSnakeCaseNamingConvention()
 );
+
+// Add Hangfire services.
+services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(connStr)
+    );
+
+// Add the processing server as IHostedService
+services.AddHangfireServer();
 
 
 var app = builder.Build();
@@ -43,9 +67,9 @@ if (app.Environment.IsDevelopment())
 
 using (var scope = app.Services.CreateScope())
 {
-  var services = scope.ServiceProvider;
+  var serviceProvider = scope.ServiceProvider;
 
-  var context = services.GetRequiredService<DbAppContext>();
+  var context = serviceProvider.GetRequiredService<DbAppContext>();
   context.Database.EnsureCreated();
    DbInitializer.Initialize(context);
 }
