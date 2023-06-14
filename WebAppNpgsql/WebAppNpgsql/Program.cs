@@ -1,7 +1,6 @@
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 using WebAppNpgsql.Context;
 
@@ -23,26 +22,27 @@ services.AddAutoMapper(typeof(Program));
 var connStr = configuration.GetConnectionString("DbAppContext");
 
 // Create a data source with the configuration you want:
-//var dataSourceBuilder = new NpgsqlDataSourceBuilder(connStr);
-//await using var dataSource = dataSourceBuilder.Build();
-
-//services.AddDbContext<DbAppContext>(
-//  options => options
-//  .UseNpgsql(dataSource, o =>
-//  {
-//    o.UseNetTopologySuite();
-//  })
-//  .UseSnakeCaseNamingConvention()
-//);
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connStr);
+dataSourceBuilder.UseNetTopologySuite();
+await using var dataSource = dataSourceBuilder.Build();
 
 services.AddDbContext<DbAppContext>(
   options => options
-  .UseNpgsql(connStr, o =>
+  .UseNpgsql(dataSource, o =>
   {
     o.UseNetTopologySuite();
   })
   .UseSnakeCaseNamingConvention()
 );
+
+//services.AddDbContext<DbAppContext>(
+//  options => options
+//  .UseNpgsql(connStr, o =>
+//  {
+//    o.UseNetTopologySuite();
+//  })
+//  .UseSnakeCaseNamingConvention()
+//);
 
 // Add Hangfire services.
 services.AddHangfire(configuration => configuration
@@ -70,8 +70,8 @@ using (var scope = app.Services.CreateScope())
   var serviceProvider = scope.ServiceProvider;
 
   var context = serviceProvider.GetRequiredService<DbAppContext>();
-  context.Database.EnsureCreated();
-   DbInitializer.Initialize(context);
+  context.Database.IsRelational();
+  DbInitializer.Initialize(context);
 }
 
 
