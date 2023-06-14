@@ -37,14 +37,14 @@ services.AddDbContext<DbAppContext>(
 );
 
 // OLD STYLE
-//services.AddDbContext<DbAppContext>(
-//  options => options
-//  .UseNpgsql(connStr, o =>
-//  {
-//    o.UseNetTopologySuite();
-//  })
-//  .UseSnakeCaseNamingConvention()
-//);
+services.AddDbContext<DbAppContext>(
+  options => options
+  .UseNpgsql(connStr, o =>
+  {
+    o.UseNetTopologySuite();
+  })
+  .UseSnakeCaseNamingConvention()
+);
 
 // Add Hangfire services.
 services.AddHangfire(configuration => configuration
