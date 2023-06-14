@@ -21,6 +21,7 @@ services.AddAutoMapper(typeof(Program));
 
 var connStr = configuration.GetConnectionString("DbAppContext");
 
+// NEW STYLE
 // Create a data source with the configuration you want:
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connStr);
 dataSourceBuilder.UseNetTopologySuite();
@@ -35,6 +36,7 @@ services.AddDbContext<DbAppContext>(
   .UseSnakeCaseNamingConvention()
 );
 
+// OLD STYLE
 //services.AddDbContext<DbAppContext>(
 //  options => options
 //  .UseNpgsql(connStr, o =>
